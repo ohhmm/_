@@ -1,6 +1,6 @@
 # Network Topology Diagram Generator
 
-This repository contains the necessary files and documentation to generate a network topology diagram using shell commands and Graphviz.
+This repository contains the necessary files and documentation to generate a network topology diagram using shell commands, rtnetlink, and Graphviz.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ sudo apt-get install graphviz
 
 Follow these steps to generate the network topology diagram:
 
-1. Gather network information:
+1. Gather network information using rtnetlink via the `ip` command:
    ```bash
    ip -br link show
    ip -br addr show
@@ -60,13 +60,17 @@ Follow these steps to generate the network topology diagram:
 
 ## Explanation
 
-This process uses Graphviz to create a visual representation of the network topology. The `ip` commands gather information about network interfaces. The DOT file (network_topology.dot) describes the graph structure, which Graphviz then renders into a PDF.
+This process uses Graphviz to create a visual representation of the network topology. The `ip` commands utilize rtnetlink, a Linux kernel interface, to gather information about network interfaces. Rtnetlink provides a way for user-space programs to communicate with the kernel's networking subsystem, allowing us to retrieve detailed network configuration data.
 
-The resulting diagram shows the relationships between different network interfaces (lo, ens5, docker0) and their connections, including an external internet connection.
+The `ip` command acts as a user-space tool that leverages rtnetlink to query the kernel for network interface information. When we run `ip -br link show` and `ip -br addr show`, these commands use rtnetlink to request and receive data about network interfaces, their status, and IP addresses from the kernel.
+
+The gathered information is then used to create a DOT file (network_topology.dot), which describes the graph structure. Graphviz uses this DOT file to render the final PDF, visualizing the network topology.
+
+The resulting diagram shows the relationships between different network interfaces (lo, ens5, docker0) and their connections, including an external internet connection. This visual representation helps in understanding the network configuration obtained through rtnetlink.
 
 ## Files
 
 - `network_topology.dot`: Contains the DOT language description of the network topology.
 - `network_topology.pdf`: The generated PDF file containing the visual network topology diagram.
 
-Feel free to modify the `network_topology.dot` file to reflect changes in your network configuration or to add more details to the diagram.
+Feel free to modify the `network_topology.dot` file to reflect changes in your network configuration or to add more details to the diagram. Remember that any changes should be based on the actual network information obtained through rtnetlink via the `ip` command.

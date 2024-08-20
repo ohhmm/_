@@ -1,0 +1,17 @@
+digraph network_topology {
+    rankdir=LR;
+    node [shape=box];
+
+    lo [label="lo\nLoopback\nUP"];
+    ens5 [label="ens5\nEthernet\nUP"];
+    docker0 [label="docker0\nEthernet\nUP"];
+
+    // Connections
+    lo -> ens5 [dir=both, label="Connection"];
+    lo -> docker0 [dir=both, label="Connection"];
+    ens5 -> docker0 [dir=both, label="Connection"];
+
+    // External network connection
+    internet [shape=cloud, label="Internet"];
+    lo -> internet [dir=both];
+}
