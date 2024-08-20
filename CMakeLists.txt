@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable vcpkg integration
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  message(ERROR "set CMAKE_TOOLCHAIN_FILE to vcpkg toolchain file [vcpkg/scripts/buildsystems/vcpkg.cmake]")
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       CACHE STRING "Vcpkg toolchain file")
 endif()

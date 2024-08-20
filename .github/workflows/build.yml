@@ -10,10 +10,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache vcpkg
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ${{github.workspace}}/vcpkg
@@ -64,7 +64,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: '3508985146f1b1d248c67ead13f8f54be5b4f5da'
+        vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
         vcpkgJsonGlob: '**/vcpkg.json'
 
     - name: Configure CMake
@@ -79,7 +79,7 @@ jobs:
       run: ctest
 
     - name: Upload build logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: build-logs-${{ matrix.os }}
