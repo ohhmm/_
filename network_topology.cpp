@@ -17,6 +17,7 @@ struct Interface {
     std::string type;
     std::string status;
     std::string ip_address;
+    std::string mac_address;
 };
 
 std::string get_interface_type(unsigned int ifi_type) {
@@ -87,6 +88,12 @@ std::vector<Interface> get_network_interfaces() {
                 for (; RTA_OK(rta, rtlen); rta = RTA_NEXT(rta, rtlen)) {
                     if (rta->rta_type == IFLA_IFNAME) {
                         iface.name = std::string((char *)RTA_DATA(rta));
+                    } else if (rta->rta_type == IFLA_ADDRESS) {
+                        unsigned char *mac = (unsigned char *)RTA_DATA(rta);
+                        char mac_str[18];
+                        snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",
+                                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                        iface.mac_address = std::string(mac_str);
                     }
                 }
 
@@ -117,7 +124,9 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
 
     for (const auto& iface : interfaces) {
         dot_file << "    " << iface.name << " [label=\"" << iface.name << "\\n"
-                 << iface.type << "\\n" << iface.status << "\"];\n";
+                 << iface.type << "\\n" << iface.status << "\\n"
+                 << "MAC: " << iface.mac_address << "\\n"
+                 << "IP: " << iface.ip_address << "\"];\n";
     }
 
     dot_file << "\n    // Connections\n";
