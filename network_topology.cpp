@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <array>
 #include <sstream>
+#include <algorithm>
 
 struct Interface {
     std::string name;
@@ -177,21 +178,32 @@ std::string exec(const char* cmd) {
 }
 
 void parse_arp_table(std::vector<Interface>& interfaces) {
-    std::string arp_output = exec("arp -e");
+    std::string arp_output = exec("arp -a");
     std::istringstream iss(arp_output);
     std::string line;
 
-    // Skip the header line
-    std::getline(iss, line);
-
     while (std::getline(iss, line)) {
         std::istringstream line_iss(line);
-        std::string ip, hw_type, mac, flags, iface;
+        std::string hostname, ip, hw_type, mac, iface;
 
-        if (line_iss >> ip >> hw_type >> mac >> flags >> iface) {
+        // Parse the line, which is in the format: hostname (ip) at mac [ether] on iface
+        if (std::getline(line_iss, hostname, '(') &&
+            std::getline(line_iss, ip, ')') &&
+            line_iss >> hw_type >> mac >> hw_type >> iface) {
+
+            // Remove leading/trailing whitespace from ip
+            ip.erase(0, ip.find_first_not_of(" \t"));
+            ip.erase(ip.find_last_not_of(" \t") + 1);
+
+            // Remove square brackets from mac address if present
+            mac.erase(std::remove_if(mac.begin(), mac.end(), [](char c) { return c == '[' || c == ']'; }), mac.end());
+
             for (auto& interface : interfaces) {
                 if (interface.name == iface) {
                     interface.associated_macs.push_back(mac);
+                    if (interface.ip_address.empty()) {
+                        interface.ip_address = ip;
+                    }
                     break;
                 }
             }
