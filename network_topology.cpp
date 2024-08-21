@@ -11,6 +11,11 @@
 #include <net/if.h>
 #include <errno.h>
 #include <linux/if_arp.h>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <array>
+#include <sstream>
 
 struct Interface {
     std::string name;
@@ -18,7 +23,10 @@ struct Interface {
     std::string status;
     std::string ip_address;
     std::string mac_address;
+    std::vector<std::string> associated_macs;
 };
+
+void parse_arp_table(std::vector<Interface>& interfaces);
 
 std::string get_interface_type(unsigned int ifi_type) {
     switch (ifi_type) {
@@ -149,7 +157,44 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
 
 int main() {
     std::vector<Interface> interfaces = get_network_interfaces();
+    parse_arp_table(interfaces);
     generate_dot_file(interfaces);
     std::cout << "Network topology DOT file generated: network_topology.dot" << std::endl;
     return 0;
+}
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+void parse_arp_table(std::vector<Interface>& interfaces) {
+    std::string arp_output = exec("arp -e");
+    std::istringstream iss(arp_output);
+    std::string line;
+
+    // Skip the header line
+    std::getline(iss, line);
+
+    while (std::getline(iss, line)) {
+        std::istringstream line_iss(line);
+        std::string ip, hw_type, mac, flags, iface;
+
+        if (line_iss >> ip >> hw_type >> mac >> flags >> iface) {
+            for (auto& interface : interfaces) {
+                if (interface.name == iface) {
+                    interface.associated_macs.push_back(mac);
+                    break;
+                }
+            }
+        }
+    }
 }
