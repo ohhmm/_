@@ -11,6 +11,13 @@
 #include <net/if.h>
 #include <errno.h>
 #include <linux/if_arp.h>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <array>
+#include <sstream>
+#include <algorithm>
+#include <set>
 
 struct Interface {
     std::string name;
@@ -18,7 +25,19 @@ struct Interface {
     std::string status;
     std::string ip_address;
     std::string mac_address;
+    std::vector<std::string> associated_macs;
+    bool is_bridge;
+    std::vector<std::string> bridge_ports;
+    std::vector<std::string> bridge_interfaces;
+    std::string bridge_id;
+    std::string stp_status;
+    std::vector<std::string> connected_interfaces;
 };
+
+void parse_arp_table(std::vector<Interface>& interfaces);
+void detect_bridge_interfaces(std::vector<Interface>& interfaces);
+void discover_connected_nodes(std::vector<Interface>& interfaces);
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces, std::set<std::string>& visited);
 
 std::string get_interface_type(unsigned int ifi_type) {
     switch (ifi_type) {
@@ -84,6 +103,9 @@ std::vector<Interface> get_network_interfaces() {
                 Interface iface;
                 iface.status = (ifi->ifi_flags & IFF_UP) ? "UP" : "DOWN";
                 iface.type = get_interface_type(ifi->ifi_type);
+                iface.is_bridge = false;
+                iface.bridge_id = "";
+                iface.stp_status = "";
 
                 for (; RTA_OK(rta, rtlen); rta = RTA_NEXT(rta, rtlen)) {
                     if (rta->rta_type == IFLA_IFNAME) {
@@ -94,7 +116,24 @@ std::vector<Interface> get_network_interfaces() {
                         snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",
                                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                         iface.mac_address = std::string(mac_str);
+                    } else if (rta->rta_type == IFLA_LINKINFO) {
+                        struct rtattr *link_info_attr = (struct rtattr *)RTA_DATA(rta);
+                        int link_info_len = RTA_PAYLOAD(rta);
+
+                        for (; RTA_OK(link_info_attr, link_info_len); link_info_attr = RTA_NEXT(link_info_attr, link_info_len)) {
+                            if (link_info_attr->rta_type == IFLA_INFO_KIND) {
+                                const char *kind = (const char *)RTA_DATA(link_info_attr);
+                                if (strcmp(kind, "bridge") == 0) {
+                                    iface.is_bridge = true;
+                                    iface.type = "Bridge";
+                                }
+                            }
+                        }
                     }
+                }
+
+                if (iface.is_bridge) {
+                    // We'll populate bridge_interfaces, bridge_id, and stp_status in detect_bridge_interfaces()
                 }
 
                 interfaces.push_back(iface);
@@ -126,21 +165,39 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
         dot_file << "    " << iface.name << " [label=\"" << iface.name << "\\n"
                  << iface.type << "\\n" << iface.status << "\\n"
                  << "MAC: " << iface.mac_address << "\\n"
-                 << "IP: " << iface.ip_address << "\"];\n";
+                 << "IP: " << iface.ip_address;
+
+        if (iface.type == "Bridge") {
+            dot_file << "\\nBridge Interfaces:";
+            for (const auto& slave : iface.bridge_interfaces) {
+                dot_file << "\\n  " << slave;
+            }
+        }
+
+        if (!iface.associated_macs.empty()) {
+            dot_file << "\\nAssociated MACs:";
+            for (const auto& mac : iface.associated_macs) {
+                dot_file << "\\n  " << mac;
+            }
+        }
+
+        dot_file << "\"];\n";
     }
 
     dot_file << "\n    // Connections\n";
-    for (size_t i = 0; i < interfaces.size(); ++i) {
-        for (size_t j = i + 1; j < interfaces.size(); ++j) {
-            dot_file << "    " << interfaces[i].name << " -> " << interfaces[j].name
+    for (const auto& iface : interfaces) {
+        for (const auto& connected : iface.connected_interfaces) {
+            dot_file << "    " << iface.name << " -> " << connected
                      << " [dir=both, label=\"Connection\"];\n";
         }
     }
 
     dot_file << "\n    // External network connection\n";
     dot_file << "    internet [shape=cloud, label=\"Internet\"];\n";
-    if (!interfaces.empty()) {
-        dot_file << "    " << interfaces[0].name << " -> internet [dir=both];\n";
+    auto gateway = std::find_if(interfaces.begin(), interfaces.end(),
+        [](const Interface& iface) { return iface.type == "Ethernet" && !iface.ip_address.empty(); });
+    if (gateway != interfaces.end()) {
+        dot_file << "    " << gateway->name << " -> internet [dir=both];\n";
     }
 
     dot_file << "}\n";
@@ -149,7 +206,152 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
 
 int main() {
     std::vector<Interface> interfaces = get_network_interfaces();
+    parse_arp_table(interfaces);
+    detect_bridge_interfaces(interfaces);
+    discover_connected_nodes(interfaces);
     generate_dot_file(interfaces);
     std::cout << "Network topology DOT file generated: network_topology.dot" << std::endl;
     return 0;
+}
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+void parse_arp_table(std::vector<Interface>& interfaces) {
+    std::string arp_output = exec("arp -e");
+    std::istringstream iss(arp_output);
+    std::string line;
+
+    // Skip the header line
+    std::getline(iss, line);
+
+    while (std::getline(iss, line)) {
+        std::istringstream line_iss(line);
+        std::string address, hw_type, hw_address, flags, iface;
+
+        if (line_iss >> address >> hw_type >> hw_address >> flags >> iface) {
+            for (auto& interface : interfaces) {
+                if (interface.name == iface) {
+                    // Add the MAC address to associated_macs if it's not already there
+                    if (std::find(interface.associated_macs.begin(), interface.associated_macs.end(), hw_address) == interface.associated_macs.end()) {
+                        interface.associated_macs.push_back(hw_address);
+                    }
+
+                    // Set the IP address if it's empty
+                    if (interface.ip_address.empty()) {
+                        interface.ip_address = address;
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void detect_bridge_interfaces(std::vector<Interface>& interfaces) {
+    std::string bridge_output = exec("brctl show");
+    std::istringstream iss(bridge_output);
+    std::string line;
+    std::getline(iss, line); // Skip header line
+
+    while (std::getline(iss, line)) {
+        std::istringstream line_iss(line);
+        std::string bridge_name, bridge_id, stp_status, port;
+
+        if (line_iss >> bridge_name >> bridge_id >> stp_status) {
+            for (auto& interface : interfaces) {
+                if (interface.name == bridge_name) {
+                    interface.type = "Bridge";
+                    interface.is_bridge = true;
+                    interface.bridge_id = bridge_id;
+                    interface.stp_status = stp_status;
+
+                    // Read bridge ports
+                    while (line_iss >> port) {
+                        interface.bridge_interfaces.push_back(port);
+                    }
+
+                    // Read additional lines for more ports
+                    while (std::getline(iss, line) && !line.empty()) {
+                        std::istringstream port_iss(line);
+                        std::string additional_port;
+                        if (port_iss >> additional_port) {
+                            interface.bridge_interfaces.push_back(additional_port);
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+
+    // Call the function to discover connected nodes
+    discover_connected_nodes(interfaces);
+}
+
+void discover_connected_nodes(std::vector<Interface>& interfaces) {
+    std::set<std::string> visited;
+    for (auto& interface : interfaces) {
+        if (interface.is_bridge) {
+            for (const auto& port : interface.bridge_interfaces) {
+                auto it = std::find_if(interfaces.begin(), interfaces.end(),
+                    [&port](const Interface& iface) { return iface.name == port; });
+
+                if (it != interfaces.end()) {
+                    interface.connected_interfaces.push_back(it->name);
+                    it->connected_interfaces.push_back(interface.name);
+                    discover_connected_nodes_recursive(*it, interfaces, visited);
+                }
+            }
+        } else {
+            // For non-bridge interfaces, use MAC addresses to establish connections
+            for (const auto& mac : interface.associated_macs) {
+                for (auto& other : interfaces) {
+                    if (&other != &interface &&
+                        (other.mac_address == mac ||
+                         std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+                        interface.connected_interfaces.push_back(other.name);
+                        other.connected_interfaces.push_back(interface.name);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces, std::set<std::string>& visited) {
+    if (visited.find(current.name) != visited.end()) {
+        return; // Already visited this interface, avoid loops
+    }
+    visited.insert(current.name);
+
+    for (const auto& mac : current.associated_macs) {
+        // Find other interfaces with the same MAC address
+        for (auto& other : interfaces) {
+            if (&other != &current &&
+                (other.mac_address == mac ||
+                 std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+                // Add connection between current and other interface if not already connected
+                if (std::find(current.connected_interfaces.begin(), current.connected_interfaces.end(), other.name) == current.connected_interfaces.end()) {
+                    current.connected_interfaces.push_back(other.name);
+                    other.connected_interfaces.push_back(current.name);
+                }
+
+                // Recursively discover nodes connected to the other interface
+                discover_connected_nodes_recursive(other, interfaces, visited);
+            }
+        }
+    }
 }
