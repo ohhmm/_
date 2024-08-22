@@ -17,6 +17,7 @@
 #include <array>
 #include <sstream>
 #include <algorithm>
+#include <set>
 
 struct Interface {
     std::string name;
@@ -36,7 +37,7 @@ struct Interface {
 void parse_arp_table(std::vector<Interface>& interfaces);
 void detect_bridge_interfaces(std::vector<Interface>& interfaces);
 void discover_connected_nodes(std::vector<Interface>& interfaces);
-void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces);
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces, std::set<std::string>& visited);
 
 std::string get_interface_type(unsigned int ifi_type) {
     switch (ifi_type) {
@@ -173,21 +174,30 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
             }
         }
 
+        if (!iface.associated_macs.empty()) {
+            dot_file << "\\nAssociated MACs:";
+            for (const auto& mac : iface.associated_macs) {
+                dot_file << "\\n  " << mac;
+            }
+        }
+
         dot_file << "\"];\n";
     }
 
     dot_file << "\n    // Connections\n";
-    for (size_t i = 0; i < interfaces.size(); ++i) {
-        for (size_t j = i + 1; j < interfaces.size(); ++j) {
-            dot_file << "    " << interfaces[i].name << " -> " << interfaces[j].name
+    for (const auto& iface : interfaces) {
+        for (const auto& connected : iface.connected_interfaces) {
+            dot_file << "    " << iface.name << " -> " << connected
                      << " [dir=both, label=\"Connection\"];\n";
         }
     }
 
     dot_file << "\n    // External network connection\n";
     dot_file << "    internet [shape=cloud, label=\"Internet\"];\n";
-    if (!interfaces.empty()) {
-        dot_file << "    " << interfaces[0].name << " -> internet [dir=both];\n";
+    auto gateway = std::find_if(interfaces.begin(), interfaces.end(),
+        [](const Interface& iface) { return iface.type == "Ethernet" && !iface.ip_address.empty(); });
+    if (gateway != interfaces.end()) {
+        dot_file << "    " << gateway->name << " -> internet [dir=both];\n";
     }
 
     dot_file << "}\n";
@@ -218,32 +228,30 @@ std::string exec(const char* cmd) {
 }
 
 void parse_arp_table(std::vector<Interface>& interfaces) {
-    std::string arp_output = exec("arp -a");
+    std::string arp_output = exec("arp -e");
     std::istringstream iss(arp_output);
     std::string line;
 
+    // Skip the header line
+    std::getline(iss, line);
+
     while (std::getline(iss, line)) {
         std::istringstream line_iss(line);
-        std::string hostname, ip, hw_type, mac, iface;
+        std::string address, hw_type, hw_address, flags, iface;
 
-        // Parse the line, which is in the format: hostname (ip) at mac [ether] on iface
-        if (std::getline(line_iss, hostname, '(') &&
-            std::getline(line_iss, ip, ')') &&
-            line_iss >> hw_type >> mac >> hw_type >> iface) {
-
-            // Remove leading/trailing whitespace from ip
-            ip.erase(0, ip.find_first_not_of(" \t"));
-            ip.erase(ip.find_last_not_of(" \t") + 1);
-
-            // Remove square brackets from mac address if present
-            mac.erase(std::remove_if(mac.begin(), mac.end(), [](char c) { return c == '[' || c == ']'; }), mac.end());
-
+        if (line_iss >> address >> hw_type >> hw_address >> flags >> iface) {
             for (auto& interface : interfaces) {
                 if (interface.name == iface) {
-                    interface.associated_macs.push_back(mac);
-                    if (interface.ip_address.empty()) {
-                        interface.ip_address = ip;
+                    // Add the MAC address to associated_macs if it's not already there
+                    if (std::find(interface.associated_macs.begin(), interface.associated_macs.end(), hw_address) == interface.associated_macs.end()) {
+                        interface.associated_macs.push_back(hw_address);
                     }
+
+                    // Set the IP address if it's empty
+                    if (interface.ip_address.empty()) {
+                        interface.ip_address = address;
+                    }
+
                     break;
                 }
             }
@@ -294,39 +302,55 @@ void detect_bridge_interfaces(std::vector<Interface>& interfaces) {
 }
 
 void discover_connected_nodes(std::vector<Interface>& interfaces) {
+    std::set<std::string> visited;
     for (auto& interface : interfaces) {
         if (interface.is_bridge) {
             for (const auto& port : interface.bridge_interfaces) {
-                // Find the interface corresponding to this port
                 auto it = std::find_if(interfaces.begin(), interfaces.end(),
                     [&port](const Interface& iface) { return iface.name == port; });
 
                 if (it != interfaces.end()) {
-                    // Add connection between bridge and port
                     interface.connected_interfaces.push_back(it->name);
                     it->connected_interfaces.push_back(interface.name);
-
-                    // Recursively discover nodes connected to this port
-                    discover_connected_nodes_recursive(*it, interfaces);
+                    discover_connected_nodes_recursive(*it, interfaces, visited);
+                }
+            }
+        } else {
+            // For non-bridge interfaces, use MAC addresses to establish connections
+            for (const auto& mac : interface.associated_macs) {
+                for (auto& other : interfaces) {
+                    if (&other != &interface &&
+                        (other.mac_address == mac ||
+                         std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+                        interface.connected_interfaces.push_back(other.name);
+                        other.connected_interfaces.push_back(interface.name);
+                    }
                 }
             }
         }
     }
 }
 
-void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces) {
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces, std::set<std::string>& visited) {
+    if (visited.find(current.name) != visited.end()) {
+        return; // Already visited this interface, avoid loops
+    }
+    visited.insert(current.name);
+
     for (const auto& mac : current.associated_macs) {
         // Find other interfaces with the same MAC address
         for (auto& other : interfaces) {
             if (&other != &current &&
                 (other.mac_address == mac ||
                  std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
-                // Add connection between current and other interface
-                current.connected_interfaces.push_back(other.name);
-                other.connected_interfaces.push_back(current.name);
+                // Add connection between current and other interface if not already connected
+                if (std::find(current.connected_interfaces.begin(), current.connected_interfaces.end(), other.name) == current.connected_interfaces.end()) {
+                    current.connected_interfaces.push_back(other.name);
+                    other.connected_interfaces.push_back(current.name);
+                }
 
                 // Recursively discover nodes connected to the other interface
-                discover_connected_nodes_recursive(other, interfaces);
+                discover_connected_nodes_recursive(other, interfaces, visited);
             }
         }
     }
