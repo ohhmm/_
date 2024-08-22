@@ -172,12 +172,21 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
             for (const auto& slave : iface.bridge_interfaces) {
                 dot_file << "\\n  " << slave;
             }
+            dot_file << "\\nBridge ID: " << iface.bridge_id;
+            dot_file << "\\nSTP Status: " << iface.stp_status;
         }
 
         if (!iface.associated_macs.empty()) {
             dot_file << "\\nAssociated MACs:";
             for (const auto& mac : iface.associated_macs) {
                 dot_file << "\\n  " << mac;
+            }
+        }
+
+        if (!iface.connected_interfaces.empty()) {
+            dot_file << "\\nConnected Interfaces:";
+            for (const auto& connected : iface.connected_interfaces) {
+                dot_file << "\\n  " << connected;
             }
         }
 
@@ -316,14 +325,18 @@ void discover_connected_nodes(std::vector<Interface>& interfaces) {
                     discover_connected_nodes_recursive(*it, interfaces, visited);
                 }
             }
-        } else {
-            // For non-bridge interfaces, use MAC addresses to establish connections
-            for (const auto& mac : interface.associated_macs) {
-                for (auto& other : interfaces) {
-                    if (&other != &interface &&
-                        (other.mac_address == mac ||
-                         std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+        }
+
+        // For all interfaces, use MAC addresses to establish connections
+        for (const auto& mac : interface.associated_macs) {
+            for (auto& other : interfaces) {
+                if (&other != &interface &&
+                    (other.mac_address == mac ||
+                     std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+                    if (std::find(interface.connected_interfaces.begin(), interface.connected_interfaces.end(), other.name) == interface.connected_interfaces.end()) {
                         interface.connected_interfaces.push_back(other.name);
+                    }
+                    if (std::find(other.connected_interfaces.begin(), other.connected_interfaces.end(), interface.name) == other.connected_interfaces.end()) {
                         other.connected_interfaces.push_back(interface.name);
                     }
                 }

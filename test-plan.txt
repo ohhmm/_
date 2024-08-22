@@ -28,13 +28,18 @@ Test Plan for Network Topology Tool
    - Confirm that MAC addresses are correctly associated with their respective interfaces
 
 6. Test handling of different interface types:
-   - Configure a network with various interface types (e.g., Ethernet, Loopback, PPP, Tunnel)
+   - Configure a network with various interface types (e.g., Ethernet, Loopback, PPP, Tunnel, VLAN, Wireless)
    - Run the program and verify that each interface type is correctly identified and represented
+   - Check that non-bridge interfaces are properly included in the topology
+   - Verify that interface-specific information (e.g., IP address, MAC address) is correctly displayed for all types
+   - Ensure that connections between different interface types are accurately represented
 
 7. Verify correct handling of UP/DOWN interface statuses:
    - Set up interfaces with different statuses (UP and DOWN)
    - Run the program and check the output
    - Confirm that the status of each interface is accurately represented
+   - Verify that DOWN interfaces are included in the topology but marked as inactive
+   - Test that changes in interface status are reflected in subsequent runs of the program
 
 8. Test program behavior with disconnected or unreachable nodes:
    - Create a network setup with some unreachable or disconnected nodes

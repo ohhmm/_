@@ -4,15 +4,15 @@ digraph network_topology {
 
     lo [label="lo\nLoopback\nUP\nMAC: 00:00:00:00:00:00\nIP: "];
     ens5 [label="ens5\nEthernet\nUP\nMAC: 02:3d:77:fe:5d:a1\nIP: 10.240.128.1\nAssociated MACs:\n  02:c0:ce:ea:9d:ed"];
-    docker0 [label="docker0\nBridge\nUP\nMAC: 02:42:b9:ef:35:5d\nIP: \nBridge Interfaces:"];
+    docker0 [label="docker0\nBridge\nUP\nMAC: 02:42:b9:ef:35:5d\nIP: \nBridge Interfaces:\nBridge ID: \nSTP Status: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     vethbeb135b [label="vethbeb135b\nEthernet\nUP\nMAC: ea:7c:41:eb:ba:d8\nIP: "];
-    vethd5187db [label="vethd5187db\nEthernet\nUP\nMAC: f2:ef:5d:32:5c:c8\nIP: "];
-    br-7060b668b2aa [label="br-7060b668b2aa\nBridge\nUP\nMAC: 02:42:d0:16:f9:30\nIP: \nBridge Interfaces:\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db"];
-    vethf366a11 [label="vethf366a11\nEthernet\nUP\nMAC: 76:45:3c:27:45:b1\nIP: "];
-    vethb1445fb [label="vethb1445fb\nEthernet\nUP\nMAC: be:d5:c6:e6:3c:ac\nIP: "];
-    veth70c0727 [label="veth70c0727\nEthernet\nUP\nMAC: e6:02:a7:4d:29:3c\nIP: "];
-    veth62e4aa6 [label="veth62e4aa6\nEthernet\nUP\nMAC: ba:a1:fd:e1:ef:5d\nIP: "];
-    veth8fdb595 [label="veth8fdb595\nEthernet\nUP\nMAC: 02:e4:cf:b2:72:8e\nIP: "];
+    vethd5187db [label="vethd5187db\nEthernet\nUP\nMAC: f2:ef:5d:32:5c:c8\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    br-7060b668b2aa [label="br-7060b668b2aa\nBridge\nUP\nMAC: 02:42:d0:16:f9:30\nIP: \nBridge Interfaces:\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db\nBridge ID: 8000.0242d016f930\nSTP Status: no\nConnected Interfaces:\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db"];
+    vethf366a11 [label="vethf366a11\nEthernet\nUP\nMAC: 76:45:3c:27:45:b1\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    vethb1445fb [label="vethb1445fb\nEthernet\nUP\nMAC: be:d5:c6:e6:3c:ac\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    veth70c0727 [label="veth70c0727\nEthernet\nUP\nMAC: e6:02:a7:4d:29:3c\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    veth62e4aa6 [label="veth62e4aa6\nEthernet\nUP\nMAC: ba:a1:fd:e1:ef:5d\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    veth8fdb595 [label="veth8fdb595\nEthernet\nUP\nMAC: 02:e4:cf:b2:72:8e\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
 
     // Connections
     docker0 -> br-7060b668b2aa [dir=both, label="Connection"];
