@@ -30,10 +30,13 @@ struct Interface {
     std::vector<std::string> bridge_interfaces;
     std::string bridge_id;
     std::string stp_status;
+    std::vector<std::string> connected_interfaces;
 };
 
 void parse_arp_table(std::vector<Interface>& interfaces);
 void detect_bridge_interfaces(std::vector<Interface>& interfaces);
+void discover_connected_nodes(std::vector<Interface>& interfaces);
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces);
 
 std::string get_interface_type(unsigned int ifi_type) {
     switch (ifi_type) {
@@ -195,6 +198,7 @@ int main() {
     std::vector<Interface> interfaces = get_network_interfaces();
     parse_arp_table(interfaces);
     detect_bridge_interfaces(interfaces);
+    discover_connected_nodes(interfaces);
     generate_dot_file(interfaces);
     std::cout << "Network topology DOT file generated: network_topology.dot" << std::endl;
     return 0;
@@ -255,16 +259,74 @@ void detect_bridge_interfaces(std::vector<Interface>& interfaces) {
 
     while (std::getline(iss, line)) {
         std::istringstream line_iss(line);
-        std::string bridge_name, bridge_id, stp_status;
+        std::string bridge_name, bridge_id, stp_status, port;
 
         if (line_iss >> bridge_name >> bridge_id >> stp_status) {
             for (auto& interface : interfaces) {
                 if (interface.name == bridge_name) {
                     interface.type = "Bridge";
+                    interface.is_bridge = true;
                     interface.bridge_id = bridge_id;
                     interface.stp_status = stp_status;
+
+                    // Read bridge ports
+                    while (line_iss >> port) {
+                        interface.bridge_interfaces.push_back(port);
+                    }
+
+                    // Read additional lines for more ports
+                    while (std::getline(iss, line) && !line.empty()) {
+                        std::istringstream port_iss(line);
+                        std::string additional_port;
+                        if (port_iss >> additional_port) {
+                            interface.bridge_interfaces.push_back(additional_port);
+                        }
+                    }
+
                     break;
                 }
+            }
+        }
+    }
+
+    // Call the function to discover connected nodes
+    discover_connected_nodes(interfaces);
+}
+
+void discover_connected_nodes(std::vector<Interface>& interfaces) {
+    for (auto& interface : interfaces) {
+        if (interface.is_bridge) {
+            for (const auto& port : interface.bridge_interfaces) {
+                // Find the interface corresponding to this port
+                auto it = std::find_if(interfaces.begin(), interfaces.end(),
+                    [&port](const Interface& iface) { return iface.name == port; });
+
+                if (it != interfaces.end()) {
+                    // Add connection between bridge and port
+                    interface.connected_interfaces.push_back(it->name);
+                    it->connected_interfaces.push_back(interface.name);
+
+                    // Recursively discover nodes connected to this port
+                    discover_connected_nodes_recursive(*it, interfaces);
+                }
+            }
+        }
+    }
+}
+
+void discover_connected_nodes_recursive(Interface& current, std::vector<Interface>& interfaces) {
+    for (const auto& mac : current.associated_macs) {
+        // Find other interfaces with the same MAC address
+        for (auto& other : interfaces) {
+            if (&other != &current &&
+                (other.mac_address == mac ||
+                 std::find(other.associated_macs.begin(), other.associated_macs.end(), mac) != other.associated_macs.end())) {
+                // Add connection between current and other interface
+                current.connected_interfaces.push_back(other.name);
+                other.connected_interfaces.push_back(current.name);
+
+                // Recursively discover nodes connected to the other interface
+                discover_connected_nodes_recursive(other, interfaces);
             }
         }
     }
