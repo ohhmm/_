@@ -25,9 +25,15 @@ struct Interface {
     std::string ip_address;
     std::string mac_address;
     std::vector<std::string> associated_macs;
+    bool is_bridge;
+    std::vector<std::string> bridge_ports;
+    std::vector<std::string> bridge_interfaces;
+    std::string bridge_id;
+    std::string stp_status;
 };
 
 void parse_arp_table(std::vector<Interface>& interfaces);
+void detect_bridge_interfaces(std::vector<Interface>& interfaces);
 
 std::string get_interface_type(unsigned int ifi_type) {
     switch (ifi_type) {
@@ -93,6 +99,9 @@ std::vector<Interface> get_network_interfaces() {
                 Interface iface;
                 iface.status = (ifi->ifi_flags & IFF_UP) ? "UP" : "DOWN";
                 iface.type = get_interface_type(ifi->ifi_type);
+                iface.is_bridge = false;
+                iface.bridge_id = "";
+                iface.stp_status = "";
 
                 for (; RTA_OK(rta, rtlen); rta = RTA_NEXT(rta, rtlen)) {
                     if (rta->rta_type == IFLA_IFNAME) {
@@ -103,7 +112,24 @@ std::vector<Interface> get_network_interfaces() {
                         snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",
                                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                         iface.mac_address = std::string(mac_str);
+                    } else if (rta->rta_type == IFLA_LINKINFO) {
+                        struct rtattr *link_info_attr = (struct rtattr *)RTA_DATA(rta);
+                        int link_info_len = RTA_PAYLOAD(rta);
+
+                        for (; RTA_OK(link_info_attr, link_info_len); link_info_attr = RTA_NEXT(link_info_attr, link_info_len)) {
+                            if (link_info_attr->rta_type == IFLA_INFO_KIND) {
+                                const char *kind = (const char *)RTA_DATA(link_info_attr);
+                                if (strcmp(kind, "bridge") == 0) {
+                                    iface.is_bridge = true;
+                                    iface.type = "Bridge";
+                                }
+                            }
+                        }
                     }
+                }
+
+                if (iface.is_bridge) {
+                    // We'll populate bridge_interfaces, bridge_id, and stp_status in detect_bridge_interfaces()
                 }
 
                 interfaces.push_back(iface);
@@ -135,7 +161,16 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
         dot_file << "    " << iface.name << " [label=\"" << iface.name << "\\n"
                  << iface.type << "\\n" << iface.status << "\\n"
                  << "MAC: " << iface.mac_address << "\\n"
-                 << "IP: " << iface.ip_address << "\"];\n";
+                 << "IP: " << iface.ip_address;
+
+        if (iface.type == "Bridge") {
+            dot_file << "\\nBridge Interfaces:";
+            for (const auto& slave : iface.bridge_interfaces) {
+                dot_file << "\\n  " << slave;
+            }
+        }
+
+        dot_file << "\"];\n";
     }
 
     dot_file << "\n    // Connections\n";
@@ -159,6 +194,7 @@ void generate_dot_file(const std::vector<Interface>& interfaces) {
 int main() {
     std::vector<Interface> interfaces = get_network_interfaces();
     parse_arp_table(interfaces);
+    detect_bridge_interfaces(interfaces);
     generate_dot_file(interfaces);
     std::cout << "Network topology DOT file generated: network_topology.dot" << std::endl;
     return 0;
@@ -204,6 +240,29 @@ void parse_arp_table(std::vector<Interface>& interfaces) {
                     if (interface.ip_address.empty()) {
                         interface.ip_address = ip;
                     }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void detect_bridge_interfaces(std::vector<Interface>& interfaces) {
+    std::string bridge_output = exec("brctl show");
+    std::istringstream iss(bridge_output);
+    std::string line;
+    std::getline(iss, line); // Skip header line
+
+    while (std::getline(iss, line)) {
+        std::istringstream line_iss(line);
+        std::string bridge_name, bridge_id, stp_status;
+
+        if (line_iss >> bridge_name >> bridge_id >> stp_status) {
+            for (auto& interface : interfaces) {
+                if (interface.name == bridge_name) {
+                    interface.type = "Bridge";
+                    interface.bridge_id = bridge_id;
+                    interface.stp_status = stp_status;
                     break;
                 }
             }
