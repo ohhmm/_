@@ -7,29 +7,35 @@ digraph network_topology {
     docker0 [label="docker0\nBridge\nUP\nMAC: 02:42:b9:ef:35:5d\nIP: \nBridge Interfaces:\nBridge ID: \nSTP Status: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     vethbeb135b [label="vethbeb135b\nEthernet\nUP\nMAC: ea:7c:41:eb:ba:d8\nIP: "];
     vethd5187db [label="vethd5187db\nEthernet\nUP\nMAC: f2:ef:5d:32:5c:c8\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
-    br-7060b668b2aa [label="br-7060b668b2aa\nBridge\nUP\nMAC: 02:42:d0:16:f9:30\nIP: \nBridge Interfaces:\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db\nBridge ID: 8000.0242d016f930\nSTP Status: no\nConnected Interfaces:\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethf366a11\n  docker0\n  vethd5187db"];
+    br-7060b668b2aa [label="br-7060b668b2aa\nBridge\nUP\nMAC: 02:42:d0:16:f9:30\nIP: \nBridge Interfaces:\n  veth563a895\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethe0cc236\n  vethf366a11\n  docker0\n  vethd5187db\nBridge ID: 8000.0242d016f930\nSTP Status: no\nConnected Interfaces:\n  veth563a895\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethe0cc236\n  vethf366a11\n  docker0\n  vethd5187db\n  veth563a895\n  veth62e4aa6\n  veth70c0727\n  veth8fdb595\n  vethb1445fb\n  vethe0cc236\n  vethf366a11\n  docker0\n  vethd5187db"];
     vethf366a11 [label="vethf366a11\nEthernet\nUP\nMAC: 76:45:3c:27:45:b1\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     vethb1445fb [label="vethb1445fb\nEthernet\nUP\nMAC: be:d5:c6:e6:3c:ac\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     veth70c0727 [label="veth70c0727\nEthernet\nUP\nMAC: e6:02:a7:4d:29:3c\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     veth62e4aa6 [label="veth62e4aa6\nEthernet\nUP\nMAC: ba:a1:fd:e1:ef:5d\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
     veth8fdb595 [label="veth8fdb595\nEthernet\nUP\nMAC: 02:e4:cf:b2:72:8e\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    veth563a895 [label="veth563a895\nEthernet\nUP\nMAC: d2:b0:69:49:80:7d\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
+    vethe0cc236 [label="vethe0cc236\nEthernet\nUP\nMAC: b2:60:60:84:44:db\nIP: \nConnected Interfaces:\n  br-7060b668b2aa\n  br-7060b668b2aa"];
 
     // Connections
     docker0 -> br-7060b668b2aa [dir=both, label="Connection"];
     docker0 -> br-7060b668b2aa [dir=both, label="Connection"];
     vethd5187db -> br-7060b668b2aa [dir=both, label="Connection"];
     vethd5187db -> br-7060b668b2aa [dir=both, label="Connection"];
+    br-7060b668b2aa -> veth563a895 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth62e4aa6 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth70c0727 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth8fdb595 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethb1445fb [dir=both, label="Connection"];
+    br-7060b668b2aa -> vethe0cc236 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethf366a11 [dir=both, label="Connection"];
     br-7060b668b2aa -> docker0 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethd5187db [dir=both, label="Connection"];
+    br-7060b668b2aa -> veth563a895 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth62e4aa6 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth70c0727 [dir=both, label="Connection"];
     br-7060b668b2aa -> veth8fdb595 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethb1445fb [dir=both, label="Connection"];
+    br-7060b668b2aa -> vethe0cc236 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethf366a11 [dir=both, label="Connection"];
     br-7060b668b2aa -> docker0 [dir=both, label="Connection"];
     br-7060b668b2aa -> vethd5187db [dir=both, label="Connection"];
@@ -43,6 +49,10 @@ digraph network_topology {
     veth62e4aa6 -> br-7060b668b2aa [dir=both, label="Connection"];
     veth8fdb595 -> br-7060b668b2aa [dir=both, label="Connection"];
     veth8fdb595 -> br-7060b668b2aa [dir=both, label="Connection"];
+    veth563a895 -> br-7060b668b2aa [dir=both, label="Connection"];
+    veth563a895 -> br-7060b668b2aa [dir=both, label="Connection"];
+    vethe0cc236 -> br-7060b668b2aa [dir=both, label="Connection"];
+    vethe0cc236 -> br-7060b668b2aa [dir=both, label="Connection"];
 
     // External network connection
     internet [shape=cloud, label="Internet"];

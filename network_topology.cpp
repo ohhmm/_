@@ -18,6 +18,10 @@
 #include <sstream>
 #include <algorithm>
 #include <set>
+#include <curl/curl.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 struct Interface {
     std::string name;
@@ -32,6 +36,11 @@ struct Interface {
     std::string bridge_id;
     std::string stp_status;
     std::vector<std::string> connected_interfaces;
+    bool is_docker_container;
+    std::string container_id;
+    std::string container_name;
+    bool is_virtual_node;
+    std::string virtual_node_type;
 };
 
 void parse_arp_table(std::vector<Interface>& interfaces);
@@ -218,6 +227,8 @@ int main() {
     parse_arp_table(interfaces);
     detect_bridge_interfaces(interfaces);
     discover_connected_nodes(interfaces);
+    detect_docker_containers(interfaces);
+    detect_virtual_nodes(interfaces);
     generate_dot_file(interfaces);
     std::cout << "Network topology DOT file generated: network_topology.dot" << std::endl;
     return 0;
@@ -366,6 +377,59 @@ void discover_connected_nodes_recursive(Interface& current, std::vector<Interfac
                 // Recursively discover nodes connected to the other interface
                 discover_connected_nodes_recursive(other, interfaces, visited);
             }
+        }
+    }
+}
+
+void detect_docker_containers(std::vector<Interface>& interfaces) {
+    std::string docker_output = exec("docker network inspect mynetwork");
+    json docker_json = json::parse(docker_output);
+
+    for (const auto& container : docker_json[0]["Containers"].items()) {
+        const auto& container_data = container.value();
+        std::string container_id = container_data["Name"];
+        std::string container_mac = container_data["MacAddress"];
+        std::string container_ipv4 = container_data["IPv4Address"];
+
+        // Remove CIDR notation from IPv4 address
+        size_t pos = container_ipv4.find('/');
+        if (pos != std::string::npos) {
+            container_ipv4 = container_ipv4.substr(0, pos);
+        }
+
+        // Find the corresponding interface and update it
+        auto it = std::find_if(interfaces.begin(), interfaces.end(),
+            [&container_mac](const Interface& iface) { return iface.mac_address == container_mac; });
+
+        if (it != interfaces.end()) {
+            it->is_docker_container = true;
+            it->container_id = container_id;
+            it->container_name = container_data["Name"];
+            it->ip_address = container_ipv4;
+        }
+    }
+}
+
+void detect_virtual_nodes(std::vector<Interface>& interfaces) {
+    for (auto& iface : interfaces) {
+        if (iface.name.substr(0, 4) == "veth") {
+            iface.is_virtual_node = true;
+            iface.virtual_node_type = "veth";
+        } else if (iface.name.substr(0, 3) == "tun" || iface.name.substr(0, 3) == "tap") {
+            iface.is_virtual_node = true;
+            iface.virtual_node_type = iface.name.substr(0, 3);
+        }
+    }
+
+    // Check for the specific virtual node MAC addresses
+    const std::vector<std::string> target_macs = {"02:42:ac:11:00:03", "02:42:ac:11:00:04"};
+    for (const auto& target_mac : target_macs) {
+        auto it = std::find_if(interfaces.begin(), interfaces.end(),
+            [&target_mac](const Interface& iface) { return iface.mac_address == target_mac; });
+
+        if (it != interfaces.end()) {
+            it->is_virtual_node = true;
+            it->virtual_node_type = "custom_virtual_node";
         }
     }
 }
