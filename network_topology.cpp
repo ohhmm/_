@@ -228,18 +228,19 @@ std::string exec(const char* cmd) {
 }
 
 void parse_arp_table(std::vector<Interface>& interfaces) {
-    std::string arp_output = exec("arp -e");
+    std::string arp_output = exec("arp -a");
     std::istringstream iss(arp_output);
     std::string line;
 
-    // Skip the header line
-    std::getline(iss, line);
-
     while (std::getline(iss, line)) {
         std::istringstream line_iss(line);
-        std::string address, hw_type, hw_address, flags, iface;
+        std::string dummy, address, hw_address, iface;
 
-        if (line_iss >> address >> hw_type >> hw_address >> flags >> iface) {
+        // Parse the line in the format: ? (192.168.1.1) at 00:11:22:33:44:55 [ether] on eth0
+        if (line_iss >> dummy >> address >> dummy >> hw_address >> dummy >> dummy >> iface) {
+            // Remove parentheses from address
+            address = address.substr(1, address.length() - 2);
+
             for (auto& interface : interfaces) {
                 if (interface.name == iface) {
                     // Add the MAC address to associated_macs if it's not already there

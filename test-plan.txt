@@ -1,0 +1,64 @@
+Test Plan for Network Topology Tool
+
+1. Verify use of `arp -a` or `arp -v` instead of `arp -e`:
+   - Check the `parse_arp_table` function in the source code
+   - Confirm that the function uses `arp -a` to retrieve ARP information
+   - Run the program and verify that ARP information is correctly parsed
+
+2. Ensure all nodes, including those beyond bridges, are correctly mapped:
+   - Set up a test network with multiple nodes and at least one bridge
+   - Run the program and examine the generated network topology
+   - Verify that all nodes are present in the topology
+   - Check that nodes connected through bridges are correctly represented
+
+3. Verify that IP addresses are included in the network topology diagram:
+   - Run the program on a network with known IP addresses
+   - Examine the generated DOT file and graphical representation
+   - Confirm that IP addresses are correctly displayed for each node
+
+4. Test bridge detection and representation:
+   - Create a network setup with one or more bridges
+   - Run the program and check the output
+   - Verify that bridges are correctly identified and labeled
+   - Ensure that bridge interfaces and connected nodes are accurately represented
+
+5. Validate MAC address association:
+   - Set up a network with multiple devices and known MAC addresses
+   - Run the program and examine the output
+   - Confirm that MAC addresses are correctly associated with their respective interfaces
+
+6. Test handling of different interface types:
+   - Configure a network with various interface types (e.g., Ethernet, Loopback, PPP, Tunnel)
+   - Run the program and verify that each interface type is correctly identified and represented
+
+7. Verify correct handling of UP/DOWN interface statuses:
+   - Set up interfaces with different statuses (UP and DOWN)
+   - Run the program and check the output
+   - Confirm that the status of each interface is accurately represented
+
+8. Test program behavior with disconnected or unreachable nodes:
+   - Create a network setup with some unreachable or disconnected nodes
+   - Run the program and examine the output
+   - Verify that the program handles these cases gracefully without crashing
+
+9. Validate the generated DOT file:
+   - Run the program on various network configurations
+   - Examine the generated network_topology.dot file
+   - Verify that the DOT file syntax is correct and can be processed by Graphviz
+
+10. Test program performance on large networks:
+    - Set up a large network configuration (e.g., 50+ nodes)
+    - Run the program and measure execution time
+    - Verify that the program completes within a reasonable timeframe
+    - Check that the generated topology is accurate for the large network
+
+11. Verify error handling and logging:
+    - Simulate various error conditions (e.g., permission denied, network unreachable)
+    - Run the program under these conditions
+    - Check that appropriate error messages are displayed or logged
+    - Verify that the program gracefully handles errors without crashing
+
+12. Test compatibility across different Linux distributions:
+    - Run the program on various Linux distributions (e.g., Ubuntu, CentOS, Fedora)
+    - Verify that the program compiles and runs correctly on each distribution
+    - Ensure that the output is consistent across different environments
