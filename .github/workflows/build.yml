@@ -21,7 +21,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v7
       with:
-        vcpkgGitCommitId: '98aa63962920f7c1e2d9c622a3a96c1c1d1c8c0b'
+        vcpkgGitCommitId: '98aa63962'
         vcpkgArguments: '--triplet x64-linux boost-filesystem'
 
     - name: Configure CMake
