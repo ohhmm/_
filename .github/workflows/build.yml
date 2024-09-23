@@ -13,6 +13,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Cache vcpkg
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{github.workspace}}/vcpkg
+          !${{github.workspace}}/vcpkg/buildtrees
+          !${{github.workspace}}/vcpkg/packages
+          !${{github.workspace}}/vcpkg/downloads
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
     - name: Install dependencies
       run: |
         sudo apt-get update
