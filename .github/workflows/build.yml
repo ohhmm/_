@@ -42,7 +42,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install cmake ninja boost
+        brew install cmake ninja
         cmake --version
         ninja --version
         clang --version
@@ -55,9 +55,6 @@ jobs:
 
     - name: Configure CMake
       run: |
-        if [ "${{ runner.os }}" == "macOS" ]; then
-          export BOOST_ROOT=$(brew --prefix boost)
-        fi
         cmake -B ${{github.workspace}}/build -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
