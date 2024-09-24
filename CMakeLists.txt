@@ -20,3 +20,10 @@ add_executable(minimal_example main.cpp)
 
 # Link Boost libraries
 target_link_libraries(minimal_example Boost::filesystem)
+
+# Platform-specific configurations
+if(APPLE)
+  # macOS specific configurations
+  message(STATUS "Configuring for macOS")
+  # Add any macOS specific flags or settings here
+endif()
