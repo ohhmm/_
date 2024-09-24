@@ -13,7 +13,10 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # Find Boost
-find_package(Boost REQUIRED COMPONENTS filesystem system test)
+find_package(Boost REQUIRED COMPONENTS filesystem system)
+
+# Find Boost Test separately
+find_package(boost_test CONFIG REQUIRED)
 
 # Add executable
 add_executable(minimal_example main.cpp)
