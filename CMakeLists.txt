@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(MinimalVcpkgExample)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable vcpkg integration
@@ -15,15 +15,20 @@ endif()
 # Find Boost
 find_package(Boost REQUIRED COMPONENTS
         filesystem
+        multiprecision
         system
-        unit_test_framework
+unit_test_framework
 )
 
 # Add executable
 add_executable(minimal_example main.cpp)
 
 # Link Boost libraries
-target_link_libraries(minimal_example Boost::filesystem Boost::system)
+target_link_libraries(minimal_example
+        Boost::filesystem
+        Boost::multiprecision
+        Boost::system
+)
 
 # Add test executable
 add_executable(test_example test_main.cpp)
