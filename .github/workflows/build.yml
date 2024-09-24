@@ -40,12 +40,15 @@ jobs:
 
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
+      env:
+        VCPKG_PYTHON3: $(which python3)
       run: |
         brew update
         brew install cmake ninja
         cmake --version
         ninja --version
         clang --version
+        echo "VCPKG_PYTHON3=$VCPKG_PYTHON3" >> $GITHUB_ENV
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
