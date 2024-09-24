@@ -77,22 +77,23 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
+      shell: pwsh
       run: |
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          if [ -f "minimal_example.exe" ]; then
-            ./minimal_example.exe
-          else
-            echo "Executable not found. Build may have failed."
+        if ("${{ runner.os }}" -eq "Windows") {
+          if (Test-Path "minimal_example.exe") {
+            .\minimal_example.exe
+          } else {
+            Write-Host "Executable not found. Build may have failed."
             exit 1
-          fi
-        else
-          if [ -f "./minimal_example" ]; then
+          }
+        } else {
+          if (Test-Path "./minimal_example") {
             ./minimal_example
-          else
-            echo "Executable not found. Build may have failed."
+          } else {
+            Write-Host "Executable not found. Build may have failed."
             exit 1
-          fi
-        fi
+          }
+        }
 
     - name: Upload build logs
       uses: actions/upload-artifact@v3
