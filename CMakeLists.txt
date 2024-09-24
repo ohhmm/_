@@ -16,7 +16,7 @@ endif()
 find_package(Boost REQUIRED COMPONENTS filesystem system)
 
 # Find Boost Test separately
-find_package(boost_test CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 # Add executable
 add_executable(minimal_example main.cpp)
@@ -28,7 +28,7 @@ target_link_libraries(minimal_example Boost::filesystem Boost::system)
 add_executable(test_example test_main.cpp)
 
 # Link Boost Test library
-target_link_libraries(test_example Boost::test)
+target_link_libraries(test_example Boost::unit_test_framework)
 
 # Platform-specific configurations
 if(APPLE)
