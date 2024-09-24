@@ -13,13 +13,19 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # Find Boost
-find_package(Boost REQUIRED COMPONENTS filesystem system)
+find_package(Boost REQUIRED COMPONENTS filesystem system test)
 
 # Add executable
 add_executable(minimal_example main.cpp)
 
 # Link Boost libraries
 target_link_libraries(minimal_example Boost::filesystem Boost::system)
+
+# Add test executable
+add_executable(test_example test_main.cpp)
+
+# Link Boost Test library
+target_link_libraries(test_example Boost::test)
 
 # Platform-specific configurations
 if(APPLE)
