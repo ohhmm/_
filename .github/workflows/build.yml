@@ -78,11 +78,20 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       run: |
-        if [ -f "./minimal_example" ]; then
-          ./minimal_example
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          if [ -f "minimal_example.exe" ]; then
+            ./minimal_example.exe
+          else
+            echo "Executable not found. Build may have failed."
+            exit 1
+          fi
         else
-          echo "Executable not found. Build may have failed."
-          exit 1
+          if [ -f "./minimal_example" ]; then
+            ./minimal_example
+          else
+            echo "Executable not found. Build may have failed."
+            exit 1
+          fi
         fi
 
     - name: Upload build logs
