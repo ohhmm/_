@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.idea
+/.vs
+/.vs/_/FileContentIndex/1fd89094-838c-4986-9acf-1434e3351581.vsidx
+/cmake-build-debug
+/cmake-build-debug/.cmake/api/v1/query/cache-v2
+/out/build/x64-Debug
+/vcpkg_installed
