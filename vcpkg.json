@@ -1,10 +1,13 @@
 {
-  "name" : "minimal-vcpkg-example",
-  "version-string" : "0.1.0",
-  "builtin-baseline" : "3508985146f1b1d248c67ead13f8f54be5b4f5da",
-  "dependencies" : [
+  "name": "minimal-vcpkg-example",
+  "version-string": "0.1.0",
+  "builtin-baseline": "6f29f12e82a8293156836ad81cc9bf5af41fe836",
+  "dependencies": [
     "boost-filesystem",
     "boost-multiprecision",
-    "boost-test"
+    "boost-test",
+    "libuuid",
+    "openssl",
+    "spdk"
   ]
 }
