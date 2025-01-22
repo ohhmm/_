@@ -8,3 +8,5 @@
 /.vs/
 /out/
 /vcpkg_installed/
+/build/
+/.cache/
