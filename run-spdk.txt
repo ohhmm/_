@@ -1,0 +1,9 @@
+$ _/run-spdk.sh 
+Starting SPDK NVMf/TCP target from /home/name/spdk
+[sudo] password for name: 
+vm.nr_hugepages = 2048
+[2025-01-23 12:00:48.226146] Starting SPDK v24.09 git sha1 19524ad45 / DPDK 24.03.0 initialization...
+[2025-01-23 12:00:48.226228] [ DPDK EAL parameters: nvmf --no-shconf -c 0x1 --huge-unlink --no-telemetry --log-level=lib.eal:6 --log-level=lib.cryptodev:5 --log-level=lib.power:5 --log-level=user1:6 --iova-mode=pa --base-virtaddr=0x200000000000 --match-allocations --file-prefix=spdk_pid4993 ]
+[2025-01-23 12:00:48.379119] app.c: 917:spdk_app_start: *NOTICE*: Total cores available: 1
+[2025-01-23 12:00:48.453455] reactor.c: 990:reactor_run: *NOTICE*: Reactor started on core 0
+SPDK NVMf/TCP target started with PID 4990

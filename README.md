@@ -26,15 +26,15 @@ Total bytes read and written.
 
 Test the resulting customization in all three modes by issuing the RPC and then running io (read, write).
 
-This repository contains the necessary files and documentation to generate a network topology diagram using shell commands, rtnetlink, and Graphviz.
 
 ## Prerequisites
 
 Before you begin, ensure you have prerequisites installed on your system. If not, you can install it using the following command:
 
 ```bash
-sudo apt-get update
-sudo apt-get install dpdk libdpdk-dev libfuse3-dev libisal-dev help2man meson libcunit1-dev libaio-dev
+sudo apt update
+sudo apt build-dep python3
+sudo apt install python3-pyelftools dpdk libdpdk-dev libfuse3-dev libisal-dev help2man meson libcunit1-dev libaio-dev libhugetlbfs-bin nvme-cli
 ```
 
 ## Generating the Network Topology Diagram
