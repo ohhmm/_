@@ -7,9 +7,6 @@
     "boost-multiprecision",
     "boost-test",
     "libuuid",
-    "openssl",
-    "spdk",
-    "spdk-isal",
-    "spdk-dpdk"
+    "openssl"
   ]
 }

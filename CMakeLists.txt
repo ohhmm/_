@@ -55,7 +55,7 @@ target_link_libraries(minimal_example
         Boost::filesystem
         Boost::multiprecision
         Boost::system
-        spdk::spdk
+        #spdk::spdk
 )
 
 # Add test executable
@@ -69,7 +69,7 @@ target_link_libraries(test_example
         Boost::unit_test_framework
         Boost::filesystem
         Boost::system
-        spdk::spdk
+        #spdk::spdk
 )
 
 # Add test to CTest
