@@ -8,6 +8,8 @@
     "boost-test",
     "libuuid",
     "openssl",
-    "spdk"
+    "spdk",
+    "spdk-isal",
+    "spdk-dpdk"
   ]
 }

@@ -34,7 +34,10 @@ Before you begin, ensure you have prerequisites installed on your system. If not
 ```bash
 sudo apt update
 sudo apt build-dep python3
-sudo apt install python3-pyelftools dpdk libdpdk-dev libfuse3-dev libisal-dev help2man meson libcunit1-dev libaio-dev libhugetlbfs-bin nvme-cli
+sudo apt install -y python3-pyelftools dpdk libdpdk-dev libfuse3-dev libisal-dev help2man meson libcunit1-dev libaio-dev libhugetlbfs-bin nvme-cli
+sudo apt install -y nasm yasm libssl-dev libnuma-dev librdmacm-dev libibverbs-dev
+
+
 ```
 
 ## Generating the Network Topology Diagram
