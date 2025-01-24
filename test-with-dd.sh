@@ -1,12 +1,14 @@
 # Find the connected NVMe device
-DEVICE=$(lsblk -nd --output NAME | grep nvme)
+DEVICE=$(diff nvme.lst*|grep nvme | sed "s/< //")
+echo "Finding new NVMe device $DEVICE"
+ls $DEVICE || exit 1
 
 # Create a filesystem
-sudo mkfs.ext4 /dev/$DEVICE
+sudo mkfs.ext4 $DEVICE
 
 # Mount the device
 sudo mkdir -p /mnt/spdk
-sudo mount /dev/$DEVICE /mnt/spdk
+sudo mount $DEVICE /mnt/spdk
 
 # Write and read a test file
 echo "Testing read/write operations..."

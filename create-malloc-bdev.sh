@@ -1,8 +1,11 @@
 #!/bin/bash
 set -x
 SPDK_PATH=$(realpath ~/spdk)
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+echo $SCRIPT_DIR
+exit 0
 
-ls /dev/nvme* > _/nvme.lst.bak
+ls /dev/nvme* > $SCRIPT_DIR/nvme.lst.bak
 
 # Exit immediately if a command exits with a non-zero status
 set -e
@@ -31,5 +34,5 @@ echo "Connecting to NVMf subsystem locally using $SPDK_RPC"
 sudo nvme connect -t tcp -n nqn.2023-01.io.spdk:cnode1 -a 127.0.0.1 -s 4420 || echo "Error Connecting to NVMf subsystem"
 
 echo "Configuration complete."
-ls /dev/nvme* > _/nvme.lst
-diff _/nvme.lst _/nvme.lst.bak
+ls /dev/nvme* > $SCRIPT_DIR/nvme.lst
+diff $SCRIPT_DIR/nvme.lst $SCRIPT_DIR/nvme.lst.bak
