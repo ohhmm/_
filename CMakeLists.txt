@@ -32,13 +32,8 @@ find_package(Boost REQUIRED COMPONENTS
 )
 
 # Find SPDK with explicit error handling and verbose output
-set(CMAKE_FIND_DEBUG_MODE TRUE)
-find_package(spdk CONFIG REQUIRED)
-set(CMAKE_FIND_DEBUG_MODE FALSE)
-
-if(NOT spdk_FOUND)
-    message(FATAL_ERROR "SPDK not found. Please ensure it is correctly installed via vcpkg.")
-endif()
+find_package(cpprestsdk CONFIG)
+find_package(spdk CONFIG)
 
 # Print SPDK information
 message(STATUS "SPDK_INCLUDE_DIRS: ${SPDK_INCLUDE_DIRS}")
