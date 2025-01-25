@@ -25,7 +25,8 @@ make -j$(nproc)
 
 echo "Starting SPDK NVMf/TCP target..."
 # Start the SPDK NVMf/TCP target application
-sudo ./build/bin/nvmf_tgt &
+sudo sysctl vm.nr_hugepages=8192
+sudo ~/spdk/build/bin/nvmf_tgt &
 SPDK_PID=$!
 sleep 2
 

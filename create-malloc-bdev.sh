@@ -24,11 +24,11 @@ echo "Creating NVMf transport"
 sudo $SPDK_RPC nvmf_create_transport -t TCP -u 8192 || echo "Error Creating NVMf transport"
 sleep 5
 
-echo "Creating NVMf subsystem and namespace using $SPDK_RPC"
-sudo $SPDK_RPC nvmf_create_subsystem nqn.2025-01.io.spdk:cnode1 -a -s SPDK00000000000001 || echo "Error Creating NVMf subsystem"
+echo "Creating NVMf subsystem"
+sudo $SPDK_RPC nvmf_create_subsystem nqn.2025-01.io.spdk:cnode1 -a -s SPDK00000000000001 -d SPDK_Controller1 || echo "Error Creating NVMf subsystem"
 sleep 5
 
-echo "Creating NVMf subsystem and namespace using $SPDK_RPC"
+echo "Creating NVMf namespace using $SPDK_RPC"
 sudo $SPDK_RPC nvmf_subsystem_add_ns nqn.2025-01.io.spdk:cnode1 PTBdev0 || echo "Error Adding NVMf namespace"
 sleep 5
 

@@ -1,5 +1,5 @@
 # Find the connected NVMe device
-DEVICE=$(diff nvme.lst*|grep nvme | sed "s/< //")
+DEVICE=$(diff nvme.lst*|grep nvme | sed "s/< //")n1
 echo "Finding new NVMe device $DEVICE"
 ls $DEVICE || exit 1
 
@@ -7,6 +7,8 @@ ls $DEVICE || exit 1
 sudo mkfs.ext4 $DEVICE
 
 # Mount the device
+echo "Mounting $DEVICE..."
+sudo rm -rf /mnt/spdk || true
 sudo mkdir -p /mnt/spdk
 sudo mount $DEVICE /mnt/spdk
 
