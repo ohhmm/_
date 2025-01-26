@@ -1,5 +1,5 @@
 # Find the connected NVMe device
-DEVICE=$(diff nvme.lst*|grep nvme | sed "s/< //")
+DEVICE=$(diff nvme.lst*|grep nvme | sed "s/< //" | tail -n1)
 echo "Finding new NVMe device $DEVICE"
 ls $DEVICE || exit 1
 
