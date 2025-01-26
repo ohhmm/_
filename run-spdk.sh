@@ -3,7 +3,7 @@ SPDK_PATH=~/spdk
 
 echo "Starting SPDK NVMf/TCP target from $SPDK_PATH"
 
-sudo sysctl vm.nr_hugepages=2048
+sudo sysctl vm.nr_hugepages=8192
 sudo $SPDK_PATH/build/bin/nvmf_tgt &
 SPDK_PID=$!
 sleep 2

@@ -13,11 +13,11 @@ set -e
 SPDK_RPC=$SPDK_PATH/scripts/rpc.py
 
 echo "Creating malloc bdev using $SPDK_RPC"
-sudo $SPDK_RPC bdev_malloc_create -b Malloc0 1024 512 || echo "Error Creating malloc bdev"
+sudo $SPDK_RPC bdev_malloc_create -b Malloc0 8192 512 || echo "Error Creating malloc bdev"
 sleep 5
 
 echo "Creating pass-through bdev on top of malloc bdev using $SPDK_RPC"
-sudo $SPDK_RPC bdev_passthru_create -b PTBdev0 -p Malloc0 || echo "Error Creating pass-through bdev"
+sudo $SPDK_RPC bdev_passthru_create -b Malloc0 -p PTBdev0 || echo "Error Creating pass-through bdev"
 sleep 5
 
 echo "Creating NVMf transport"
