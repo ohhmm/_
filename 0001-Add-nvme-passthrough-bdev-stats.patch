@@ -1,0 +1,162 @@
+From fb24d971c0f21708aa2379504940c7df1b4ca546 Mon Sep 17 00:00:00 2001
+From: Serg Kryvonos <sergeikrivonos@gmail.com>
+Date: Sat, 25 Jan 2025 23:54:35 -0500
+Subject: [PATCH] Add nvme passthrough bdev stats
+
+---
+ module/bdev/passthru/vbdev_passthru.c     | 17 ++----
+ module/bdev/passthru/vbdev_passthru.h     | 21 ++++++++
+ module/bdev/passthru/vbdev_passthru_rpc.c | 66 +++++++++++++++++++++++
+ 3 files changed, 91 insertions(+), 13 deletions(-)
+
+diff --git a/module/bdev/passthru/vbdev_passthru.c b/module/bdev/passthru/vbdev_passthru.c
+index 9ab1818ca..7a243654a 100644
+--- a/module/bdev/passthru/vbdev_passthru.c
++++ b/module/bdev/passthru/vbdev_passthru.c
+@@ -73,19 +73,6 @@ struct pt_io_channel {
+ 	struct spdk_io_channel	*base_ch; /* IO channel of base device */
+ };
+ 
+-/* Just for fun, this pt_bdev module doesn't need it but this is essentially a per IO
+- * context that we get handed by the bdev layer.
+- */
+-struct passthru_bdev_io {
+-	uint8_t test;
+-
+-	/* bdev related */
+-	struct spdk_io_channel *ch;
+-
+-	/* for bdev_io_wait */
+-	struct spdk_bdev_io_wait_entry bdev_io_wait;
+-};
+-
+ static void vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *bdev_io);
+ 
+ 
+@@ -286,6 +273,8 @@ vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *b
+ 	case SPDK_BDEV_IO_TYPE_READ:
+ 		spdk_bdev_io_get_buf(bdev_io, pt_read_get_buf_cb,
+ 				     bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen);
++		io_ctx->read_io_count++;
++        io_ctx->bytes_read += bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen;
+ 		break;
+ 	case SPDK_BDEV_IO_TYPE_WRITE:
+ 		pt_init_ext_io_opts(bdev_io, &io_opts);
+@@ -293,6 +282,8 @@ vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *b
+ 						 bdev_io->u.bdev.iovcnt, bdev_io->u.bdev.offset_blocks,
+ 						 bdev_io->u.bdev.num_blocks, _pt_complete_io,
+ 						 bdev_io, &io_opts);
++		io_ctx->write_io_count++;
++		io_ctx->bytes_written += bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen;
+ 		break;
+ 	case SPDK_BDEV_IO_TYPE_WRITE_ZEROES:
+ 		rc = spdk_bdev_write_zeroes_blocks(pt_node->base_desc, pt_ch->base_ch,
+diff --git a/module/bdev/passthru/vbdev_passthru.h b/module/bdev/passthru/vbdev_passthru.h
+index 076077f9e..eb5156ada 100644
+--- a/module/bdev/passthru/vbdev_passthru.h
++++ b/module/bdev/passthru/vbdev_passthru.h
+@@ -11,6 +11,27 @@
+ #include "spdk/bdev.h"
+ #include "spdk/bdev_module.h"
+ 
++/**
++ * Just for stats, this pt_bdev module doesn't need it but this is essentially a per IO
++ * context that we get handed by the bdev layer otherwise.
++ */
++struct passthru_bdev_io {
++	uint8_t test;
++
++	/* bdev related */
++	struct spdk_io_channel *ch;
++
++	/* for bdev_io_wait */
++	struct spdk_bdev_io_wait_entry bdev_io_wait;
++
++	/* stats */
++    uint64_t read_io_count;
++    uint64_t write_io_count;
++    uint64_t blocked_io_count;
++    uint64_t bytes_read;
++    uint64_t bytes_written;
++};
++
+ /**
+  * Create new pass through bdev.
+  *
+diff --git a/module/bdev/passthru/vbdev_passthru_rpc.c b/module/bdev/passthru/vbdev_passthru_rpc.c
+index 2f949527a..5c441e928 100644
+--- a/module/bdev/passthru/vbdev_passthru_rpc.c
++++ b/module/bdev/passthru/vbdev_passthru_rpc.c
+@@ -113,3 +113,69 @@ cleanup:
+ 	free_rpc_bdev_passthru_delete(&req);
+ }
+ SPDK_RPC_REGISTER("bdev_passthru_delete", rpc_bdev_passthru_delete, SPDK_RPC_RUNTIME)
++
++
++
++/* Structure to hold the statistics */
++struct rpc_passthru_stats {
++    char *name;
++};
++
++/* Free the memory allocated for the statistics */
++static void
++free_rpc_passthru_stats(struct rpc_passthru_stats *r)
++{
++    free(r->name);
++}
++
++/* Decode the RPC request parameters */
++static const struct spdk_json_object_decoder rpc_passthru_stats_decoder[] = {
++    {"name", offsetof(struct rpc_passthru_stats, name), spdk_json_decode_string},
++};
++
++/* Construct the RPC response */
++static void
++rpc_bdev_passthru_get_stats(struct spdk_jsonrpc_request *request,
++                            const struct spdk_json_val *params)
++{
++    struct rpc_passthru_stats req = {};
++    struct passthru_bdev_io *pt_bdev;
++    struct spdk_json_write_ctx *w;
++
++    if (spdk_json_decode_object(params, rpc_passthru_stats_decoder,
++                                SPDK_COUNTOF(rpc_passthru_stats_decoder), &req)) {
++        SPDK_ERRLOG("spdk_json_decode_object failed\n");
++        spdk_jsonrpc_send_error_response(request, SPDK_JSONRPC_ERROR_INVALID_PARAMS,
++                                         "Invalid parameters");
++        goto cleanup;
++    }
++
++    pt_bdev = spdk_bdev_get_by_name(req.name)->ctxt;
++    if (pt_bdev == NULL) {
++        SPDK_ERRLOG("passthru bdev not found: %s\n", req.name);
++        spdk_jsonrpc_send_error_response(request, SPDK_JSONRPC_ERROR_INVALID_PARAMS,
++                                         "Passthru bdev not found");
++        goto cleanup;
++    }
++
++    w = spdk_jsonrpc_begin_result(request);
++    if (w == NULL) {
++        goto cleanup;
++    }
++
++    spdk_json_write_object_begin(w);
++    spdk_json_write_named_uint64(w, "read_io_count",  pt_bdev->read_io_count);
++    spdk_json_write_named_uint64(w, "write_io_count", pt_bdev->write_io_count);
++    spdk_json_write_named_uint64(w, "blocked_io_count", pt_bdev->blocked_io_count);
++    spdk_json_write_named_uint64(w, "bytes_read", pt_bdev->bytes_read);
++    spdk_json_write_named_uint64(w, "bytes_written", pt_bdev->bytes_written);
++    spdk_json_write_object_end(w);
++
++    spdk_jsonrpc_end_result(request, w);
++
++cleanup:
++    free_rpc_passthru_stats(&req);
++}
++
++/* Register the RPC method */
++SPDK_RPC_REGISTER("bdev_passthru_get_stats", rpc_bdev_passthru_get_stats, SPDK_RPC_RUNTIME)
+-- 
+2.39.5
+
