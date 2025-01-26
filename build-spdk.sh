@@ -19,6 +19,7 @@ pip3 install ninja meson
 echo "Building SPDK..."
 # Setup and build
 git submodule update --init
+git am 0001-Add-nvme-passthrough-bdev-stats.patch
 ./scripts/pkgdep.sh
 ./configure --with-shared
 make -j$(nproc)
