@@ -1,9 +1,11 @@
 {
-  "name": "minimal-vcpkg-example",
+  "name": "boost-lookup",
   "version-string": "0.1.0",
   "builtin-baseline": "3508985146f1b1d248c67ead13f8f54be5b4f5da",
   "dependencies": [
     "boost-filesystem",
-    "boost-test"
+    "boost-test",
+    "boost-serialization",
+    "boost-iostreams"
   ]
 }
