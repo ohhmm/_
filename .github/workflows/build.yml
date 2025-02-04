@@ -10,10 +10,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache vcpkg
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ${{github.workspace}}/vcpkg
@@ -48,7 +48,7 @@ jobs:
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
 
     - name: Setup MSVC
       if: runner.os == 'Windows'
@@ -79,7 +79,7 @@ jobs:
       run: ctest
 
     - name: Upload build logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: build-logs-${{ matrix.os }}
