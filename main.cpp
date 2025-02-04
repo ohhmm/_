@@ -2,6 +2,8 @@
 #include <boost/lookup/range_adapter.hpp>
 #include <cstdint>
 #include <iostream>
+#include <array>
+#include <ranges>
 
 int main() {
     // Example 1: Basic lookup table with integer types
@@ -22,13 +24,13 @@ int main() {
     boost::lookup::basic_lookup<boost::lookup::type_chain<std::uint32_t>> composite_table(
         [](std::size_t n) -> std::uint32_t {
             // Generate 4 bytes based on the index
-            std::array<std::uint8_t, 4> bytes = {
+            std::array<std::uint8_t, 4> bytes{{
                 static_cast<std::uint8_t>(n & 0xFF),
                 static_cast<std::uint8_t>((n >> 8) & 0xFF),
                 static_cast<std::uint8_t>((n >> 16) & 0xFF),
                 static_cast<std::uint8_t>((n >> 24) & 0xFF)
-            };
-            return adapter::combine_small(bytes);
+            }};
+            return adapter::combine_small(std::ranges::ref_view(bytes));
         }
     );
     
