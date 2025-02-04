@@ -5,9 +5,9 @@
 
 int main() {
     // Example 1: Basic lookup table with integer types
-    boost::lookup::basic_lookup<std::size_t, int> fibonacci(
-        [](std::size_t n) -> int {
-            if (n <= 1) return n;
+    boost::lookup::basic_lookup<boost::lookup::type_chain<int>> fibonacci(
+        [&fibonacci](std::size_t n) -> int {
+            if (n <= 1) return static_cast<int>(n);
             return fibonacci[n-1] + fibonacci[n-2];
         }
     );
@@ -18,7 +18,7 @@ int main() {
     using adapter = boost::lookup::integer_range_adapter<std::uint8_t, std::uint32_t>;
     
     // Create a lookup table that stores 4 bytes as a single uint32
-    boost::lookup::basic_lookup<std::size_t, std::uint32_t> composite_table(
+    boost::lookup::basic_lookup<boost::lookup::type_chain<std::uint32_t>> composite_table(
         [](std::size_t n) -> std::uint32_t {
             // Generate 4 bytes based on the index
             std::array<std::uint8_t, 4> bytes = {

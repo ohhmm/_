@@ -137,9 +137,9 @@ public:
 private:
     void grow_to(size_type new_size) const {
         const auto old_size = size();
-        data_.resize(new_size);
+        const_cast<basic_lookup*>(this)->data_.resize(new_size);
         for (size_type i = old_size; i < new_size; ++i) {
-            data_[i] = grow_callback_(i);
+            const_cast<basic_lookup*>(this)->data_[i] = grow_callback_(i);
         }
     }
 
