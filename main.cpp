@@ -5,14 +5,15 @@
 
 int main() {
     // Example 1: Basic lookup table with integer types
-    boost::lookup::basic_lookup<boost::lookup::type_chain<int>> fibonacci(
-        [&fibonacci](std::size_t n) -> int {
+    auto fibonacci = [](std::size_t n) -> int {
+        static boost::lookup::basic_lookup<boost::lookup::type_chain<int>> fib([](std::size_t n) -> int {
             if (n <= 1) return static_cast<int>(n);
-            return fibonacci[n-1] + fibonacci[n-2];
-        }
-    );
+            return fib[n-1] + fib[n-2];
+        });
+        return fib[n];
+    };
     
-    std::cout << "Fibonacci(10): " << fibonacci[10] << "\n";
+    std::cout << "Fibonacci(10): " << fibonacci(10) << "\n";
 
     // Example 2: Using range adapter to work with composite types
     using adapter = boost::lookup::integer_range_adapter<std::uint8_t, std::uint32_t>;

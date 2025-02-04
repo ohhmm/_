@@ -65,13 +65,13 @@ class basic_lookup {
 
 public:
     using value_type = typename TypeChain::type;
-    using size_type = std::size_t;
+    using size_type = typename std::make_unsigned<std::ptrdiff_t>::type;
     using growth_callback_type = GrowthCallback;
 
     /// @brief Constructs a lookup table with the specified growth callback
     /// @param callback Function that computes values for new indices
     explicit basic_lookup(growth_callback_type callback) 
-        : grow_callback_(std::move(callback)) {}
+        : grow_callback_(std::move(callback)), data_() {}
 
     /// @brief Access a value in the lookup table, computing it if necessary
     /// @param index Index to access
