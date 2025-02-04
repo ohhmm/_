@@ -1,6 +1,15 @@
 #ifndef BOOST_LOOKUP_HPP
 #define BOOST_LOOKUP_HPP
 
+/*!
+ * @file lookup.hpp
+ * @brief Main header for the Boost.Lookup library
+ *
+ * This header provides the core functionality for creating and managing
+ * immutable lookup tables with O(1) access time and type-safe integer
+ * conversions using type chains.
+ */
+
 #include <boost/config.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/vector.hpp>
@@ -15,14 +24,17 @@
 namespace boost {
 namespace lookup {
 
+/// Concept for types that support Boost serialization
 template<typename T>
 concept Serializable = requires(T t, boost::archive::text_oarchive& oa) {
     { t.serialize(oa, 0) } -> std::same_as<void>;
 };
 
+/// Type chain for building hierarchical integer type relationships
 template<typename... Types>
 struct type_chain;
 
+/// Base case for type chain with single type
 template<typename T>
 struct type_chain<T> {
     using type = T;
@@ -30,6 +42,7 @@ struct type_chain<T> {
     static constexpr bool has_next = false;
 };
 
+/// Recursive case for type chain with multiple types
 template<typename T, typename... Rest>
 struct type_chain<T, Rest...> {
     using type = T;
@@ -37,6 +50,9 @@ struct type_chain<T, Rest...> {
     static constexpr bool has_next = true;
 };
 
+/// @brief Immutable lookup table with O(1) access time and type-safe conversions
+/// @tparam TypeChain Chain of integer types for hierarchical type relationships
+/// @tparam GrowthCallback Callback function type for computing new values
 template<
     typename TypeChain,
     typename GrowthCallback = std::function<typename TypeChain::type(std::size_t)>
@@ -52,9 +68,14 @@ public:
     using size_type = std::size_t;
     using growth_callback_type = GrowthCallback;
 
+    /// @brief Constructs a lookup table with the specified growth callback
+    /// @param callback Function that computes values for new indices
     explicit basic_lookup(growth_callback_type callback) 
         : grow_callback_(std::move(callback)) {}
 
+    /// @brief Access a value in the lookup table, computing it if necessary
+    /// @param index Index to access
+    /// @return Reference to the value at the given index
     const value_type& operator[](size_type index) const {
         if (index >= size()) {
             grow_to(index + 1);
@@ -66,11 +87,18 @@ public:
         return data_.size();
     }
 
+    /// @brief Serializes the lookup table using Boost serialization
+    /// @tparam Archive Type of archive (text or binary)
+    /// @param ar Archive to serialize to/from
+    /// @param version Version number for serialization
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & data_;
     }
 
+    /// @brief Attaches persistent storage to the lookup table
+    /// @tparam Storage Type of storage (must be compatible with TypeChain)
+    /// @param storage Storage to attach
     template<typename Storage>
     void attach_storage(Storage& storage) {
         auto old_size = size();

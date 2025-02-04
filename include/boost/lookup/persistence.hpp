@@ -1,6 +1,15 @@
 #ifndef BOOST_LOOKUP_PERSISTENCE_HPP
 #define BOOST_LOOKUP_PERSISTENCE_HPP
 
+/*!
+ * @file persistence.hpp
+ * @brief Memory-mapped file persistence for Boost.Lookup
+ *
+ * This header provides memory-mapped file persistence support for lookup tables,
+ * enabling efficient storage and retrieval of large datasets with minimal
+ * memory overhead.
+ */
+
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/serialization/vector.hpp>
 #include <filesystem>
@@ -11,6 +20,8 @@
 namespace boost {
 namespace lookup {
 
+/// @brief Memory-mapped file storage for lookup tables
+/// @tparam TypeChain Chain of integer types for hierarchical type relationships
 template<typename TypeChain>
 class persistent_storage {
     static_assert(std::is_integral_v<typename TypeChain::type> || Serializable<typename TypeChain::type>,
@@ -22,6 +33,9 @@ public:
     using size_type = std::size_t;
     static constexpr bool has_next = TypeChain::has_next;
     
+    /// @brief Creates or opens a memory-mapped file for persistent storage
+    /// @param path Path to the storage file
+    /// @param initial_size Initial size of the storage in elements
     explicit persistent_storage(const std::filesystem::path& path, size_type initial_size = 1024)
         : file_path_(path) {
         const auto file_size = sizeof(value_type) * initial_size;
@@ -48,6 +62,7 @@ public:
         size_ = mapped_file_.size() / sizeof(value_type);
     }
     
+    /// @brief Synchronizes memory-mapped file with disk
     void sync() {
         // No explicit sync needed for mapped_file
         // The OS will handle dirty page writeback
@@ -60,6 +75,9 @@ public:
         }
     }
     
+    /// @brief Access a value in the persistent storage
+    /// @param index Index to access
+    /// @return Value at the given index
     value_type operator[](size_type index) const {
         if (index >= size_) {
             throw std::out_of_range("Index out of bounds");
@@ -67,6 +85,9 @@ public:
         return data_[index];
     }
     
+    /// @brief Sets a value in the persistent storage
+    /// @param index Index to set
+    /// @param value Value to store
     void set_value(size_type index, const value_type& value) {
         if (index >= size_) {
             throw std::out_of_range("Index out of bounds");

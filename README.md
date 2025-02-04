@@ -1,76 +1,106 @@
-# Network Topology Diagram Generator
+# Boost.Lookup
 
-This repository contains the necessary files and documentation to generate a network topology diagram using shell commands, rtnetlink, and Graphviz.
+A high-performance, persistent immutable lookup table library for C++20.
 
-## Prerequisites
+## Overview
 
-Before you begin, ensure you have Graphviz installed on your system. If not, you can install it using the following command:
+Boost.Lookup provides a template-based implementation of immutable lookup tables with the following features:
+- O(1) lookup access time
+- Memory-mapped file persistence
+- Dynamic growth via callback
+- Type-safe integer conversions using STL ranges
+- Dense storage (no sparse tables)
+- Variadic template support for type chains
 
+## Requirements
+
+- C++20 compiler
+- Boost libraries:
+  - Serialization
+  - IOStreams
+  - Filesystem
+  - Test (for testing)
+
+## Installation
+
+Using vcpkg:
 ```bash
-sudo apt-get update
-sudo apt-get install graphviz
+vcpkg install boost-lookup
 ```
 
-## Generating the Network Topology Diagram
+## Basic Usage
 
-Follow these steps to generate the network topology diagram:
+```cpp
+#include <boost/lookup/lookup.hpp>
+#include <cstdint>
 
-1. Gather network information using rtnetlink via the `ip` command:
-   ```bash
-   ip -br link show
-   ip -br addr show
-   ```
+// Create a lookup table for Fibonacci numbers
+boost::lookup::basic_lookup<boost::lookup::type_chain<int>> fibonacci(
+    [](std::size_t n) -> int {
+        if (n <= 1) return n;
+        return fibonacci[n-1] + fibonacci[n-2];
+    }
+);
 
-2. Create a DOT file (network_topology.dot) with the network topology information:
-   ```bash
-   cat << EOF > network_topology.dot
-   digraph network_topology {
-       rankdir=LR;
-       node [shape=box];
+// Access values
+int fib_10 = fibonacci[10]; // Computed and cached automatically
 
-       // Loopback interface
-       lo [label="lo\nLoopback\nUP"];
+// Using type chains for integer conversions
+using chain = boost::lookup::type_chain<std::uint8_t, std::uint16_t, std::uint32_t>;
+boost::lookup::basic_lookup<chain> table([](std::size_t i) { 
+    return static_cast<std::uint8_t>(i & 0xFF); 
+});
 
-       // Ethernet interface
-       ens5 [label="ens5\nEthernet\nUP"];
+// Access through type chain
+auto table16 = table.as_next();    // uint16_t view
+auto table32 = table16.as_next();  // uint32_t view
+```
 
-       // Docker bridge interface
-       docker0 [label="docker0\nDocker Bridge\nDOWN"];
+## Features
 
-       // Connections
-       ens5 -> lo [dir=both, label="Internal"];
-       ens5 -> docker0 [dir=both, label="Docker Network"];
+### Type Chains
 
-       // External network connection
-       internet [shape=cloud, label="Internet"];
-       ens5 -> internet [dir=both];
-   }
-   EOF
-   ```
+Type chains allow you to create hierarchical relationships between integer types:
+```cpp
+using chain = boost::lookup::type_chain<std::uint8_t, std::uint16_t, std::uint32_t>;
+```
 
-3. Generate the PDF file from the DOT file:
-   ```bash
-   dot -Tpdf network_topology.dot -o network_topology.pdf
-   ```
+### Persistence
 
-4. View the generated PDF:
-   ```bash
-   xdg-open network_topology.pdf
-   ```
+Memory-mapped file persistence with atomic updates:
+```cpp
+#include <boost/lookup/persistence.hpp>
 
-## Explanation
+boost::lookup::persistent_storage<chain> storage("lookup.dat", 1024);
+table.attach_storage(storage);
+```
 
-This process uses Graphviz to create a visual representation of the network topology. The `ip` commands utilize rtnetlink, a Linux kernel interface, to gather information about network interfaces. Rtnetlink provides a way for user-space programs to communicate with the kernel's networking subsystem, allowing us to retrieve detailed network configuration data.
+### Range Adapters
 
-The `ip` command acts as a user-space tool that leverages rtnetlink to query the kernel for network interface information. When we run `ip -br link show` and `ip -br addr show`, these commands use rtnetlink to request and receive data about network interfaces, their status, and IP addresses from the kernel.
+STL range support for type conversions:
+```cpp
+#include <boost/lookup/range_adapter.hpp>
 
-The gathered information is then used to create a DOT file (network_topology.dot), which describes the graph structure. Graphviz uses this DOT file to render the final PDF, visualizing the network topology.
+using adapter = boost::lookup::integer_range_adapter<std::uint8_t, std::uint32_t>;
+auto bytes = adapter::split_large(value);
+auto combined = adapter::combine_small(bytes);
+```
 
-The resulting diagram shows the relationships between different network interfaces (lo, ens5, docker0) and their connections, including an external internet connection. This visual representation helps in understanding the network configuration obtained through rtnetlink.
+## Building
 
-## Files
+```bash
+cmake -B build -S .
+cmake --build build
+```
 
-- `network_topology.dot`: Contains the DOT language description of the network topology.
-- `network_topology.pdf`: The generated PDF file containing the visual network topology diagram.
+## Testing
 
-Feel free to modify the `network_topology.dot` file to reflect changes in your network configuration or to add more details to the diagram. Remember that any changes should be based on the actual network information obtained through rtnetlink via the `ip` command.
+```bash
+cmake -B build -S . -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build
+```
+
+## License
+
+Distributed under the Boost Software License, Version 1.0.
