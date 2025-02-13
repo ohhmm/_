@@ -41,6 +41,17 @@ SELECT * FROM session_knowledge ORDER BY priority DESC, created_at DESC;
 
 -- Get recent session notes
 SELECT * FROM session_notes ORDER BY created_at DESC;
+
+-- Get build performance metrics
+SELECT platform, build_phase, AVG(duration_seconds) as avg_duration
+FROM build_performance
+GROUP BY platform, build_phase;
+
+-- Get dependency resolution patterns
+SELECT platform, package_name, COUNT(*) as occurrences
+FROM dependency_patterns
+WHERE resolution_status = 'conflict'
+GROUP BY platform, package_name;
 ```
 
 ### Current Status (as of Feb 13, 2025)
@@ -48,3 +59,5 @@ SELECT * FROM session_notes ORDER BY created_at DESC;
 - 21 branches contain latest main commit (476faef)
 - 2 active PRs (#758, #365) with CI issues on macOS/Windows
 - 216 identified branch relationships
+- Build performance tracking enabled
+- Dependency resolution pattern analysis ready
