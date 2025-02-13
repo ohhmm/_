@@ -7,6 +7,8 @@ The `context` branch in `ohhmm/_` repository contains a SQLite database (`branch
 - Build configurations
 - Test results
 - Cross-session communication
+- Build performance metrics
+- Dependency resolution patterns
 
 ### Database Tables
 1. Core Tables:
@@ -23,6 +25,10 @@ The `context` branch in `ohhmm/_` repository contains a SQLite database (`branch
    - active_work
    - session_knowledge
    - session_notes
+
+3. Performance Tables:
+   - build_performance (tracks build metrics across platforms)
+   - dependency_patterns (tracks package resolution patterns)
 
 ### Usage
 To access session information:
